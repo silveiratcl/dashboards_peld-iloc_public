@@ -1,0 +1,156 @@
+---
+title: "**Grapsus grapsus** monitoring - PELD ILOC"
+output: 
+  flexdashboard::flex_dashboard:
+    social: menu
+    navbar:
+      - { icon: "fa-home", href: "https://peld-iloc.github.io/dashboards_peld-iloc/", align: right }
+ 
+    
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(flexdashboard)
+library(readr)
+library(reshape2)
+library(leaflet)
+library(ggplot2)
+library(vegan)
+library(plotly)
+library(lubridate)
+library(dplyr)
+library(RColorBrewer)
+library(magrittr)
+library(fontawesome)
+
+```
+
+```{r dataread, include = FALSE}
+
+DF<- read.csv("../data/Banco_censo_Grapsus.csv", header=T, sep=",", dec=".", na.strings = "NA", stringsAsFactors = T) 
+
+glimpse(DF)
+DF = as_tibble(DF)
+DF$island<-DF$ï..island
+
+DF = DF %>%
+  select(-ï..island) %>% 
+  relocate(island, .before = site)
+  
+DF = DF[,1:15]
+
+# Creating transect id column
+
+DF = DF %>% 
+  mutate(transect_id = paste(island, site, dd, mm,yyyy,n_tran, sep = "_"))
+
+
+
+
+```
+
+General Information 
+======================================================================
+
+Column {data-width=350}
+----------------------------------------------------------------------
+
+### Zoom in to Explore PELD-ILOC *Grapsus grapsus* monitoring sites
+
+```{r map}
+## get lat lon
+siteCoords = DF %>% dplyr::group_by(site,island)%>% 
+  dplyr::summarise(lng = mean(long, na.rm=T), 
+            lat = mean(lat, na.rm=T))
+
+## get total abund by site
+siteAbund = DF %>%  
+  dplyr::group_by(site) %>% 
+  dplyr::summarise(sumAbund = sum(counts, na.rm=T),
+                   n_census = n_distinct(transect_id))
+
+
+## add abund and to coords
+siteCoords = full_join(siteCoords, siteAbund)
+
+
+## make leaflet map
+leaflet(siteCoords) %>% 
+  setView(lng = -35, lat = -10, zoom = 04) %>% 
+  addTiles() %>% 
+  addCircleMarkers(label = ~paste0(str_to_upper(island),", ", site," / N. Individuals: ", sumAbund, "/ N. Census: ",  n_census), 
+                   radius = ~100 * (sumAbund/(sumAbund))/4,
+                   fillOpacity = 0.9,
+                   stroke = T,
+                   clusterOptions = markerClusterOptions()) %>% 
+  addMiniMap(toggleDisplay = T)
+
+
+# wrong coordinate in FN
+
+```
+
+Row {data-width=350 data-padding=10}
+----------------------------------------------------------------------
+
+### Indicators
+
+```{r value boxes, fig.align="center", echo = FALSE, fig.width=10, fig.height=7}
+library(fontawesome)
+library(emojifont)
+
+  n_census = n_distinct(DF$transect_id)
+  n_sites = n_distinct(DF$site)
+  n_ind= sum(DF$counts, na.rm = T)   
+  max_count = max(DF$counts, na.rm = T)  
+
+
+
+ df <- data.frame(
+    x = rep(c(2, 8.5), 2),
+    y = c(rep(6.5, 2), rep(2,2)),
+    h = rep(4.25, 4),
+    w = rep(6.25, 4),
+    value = as.vector(c(n_census,n_sites, n_ind, paste0(max_count," ","ind."))),
+    
+    info=c("Census", "Sites", "Individuals", "Max count"),
+    
+    
+   shape = c(fontawesome("fa-clipboard"),
+              fontawesome("fa-map-marker"),
+              fontawesome("fa-list-ol"),
+              fontawesome("fa-arrow-up")),
+   
+    
+    font_family = c(rep("fontawesome-webfont", 4)),
+    color = factor(1:4)
+)
+
+
+p2 <- ggplot(df, aes(x, y, height = h, width = w, label = info)) +
+    geom_tile(aes(fill = color)) +
+    geom_text(color = "white", fontface = "bold", size = 25,
+              aes(label = value, x = x - 2.9, y = y + 1), hjust = 0) +
+    geom_text(color = "white", fontface = "bold", size = 20,
+              aes(label = info, x = x - 2.9, y = y - 1), hjust = 0) +
+    coord_fixed() +
+    scale_fill_brewer(type = "qual",palette = "Dark2") +
+    geom_text(size = 70, aes(label = shape, family = font_family,
+                             x = x + 1.5, y = y + 0.1), alpha = 0.25) +
+    theme(plot.margin = margin(-1,-1,-1,-1, "cm"),
+          panel.background = element_rect(fill =  "white"),
+          line = element_blank(),
+          text = element_blank(),
+          title = element_blank()
+          ) +
+    #theme(plot.margin = margin(0,0,0,0, "cm")) +
+    guides(fill = "none") 
+
+p2
+
+
+```
+
+
+

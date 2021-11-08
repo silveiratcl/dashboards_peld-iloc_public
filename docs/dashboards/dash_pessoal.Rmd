@@ -1,0 +1,460 @@
+---
+title: "Perfil dos Participantes nas Expedições - PELD ILOC"
+output: 
+  flexdashboard::flex_dashboard:
+    social: menu
+    navbar:
+      - { icon: "fa-home", href: "https://peld-iloc.github.io/dashboards_peld-iloc/", align: right }
+    storyboard: true
+    
+    
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(flexdashboard)
+library(readr)
+library(reshape2)
+library(leaflet)
+library(ggplot2)
+library(vegan)
+library(plotly)
+library(lubridate)
+library(dplyr)
+library(RColorBrewer)
+library(magrittr)
+library(fontawesome)
+
+#remotes::install_github("mitchelloharawild/icons")
+library(icons)
+#icons::download_octicons()
+#icons::download_fontawesome()
+
+
+icon_mail <- icons::fontawesome$solid$`envelope-square`
+icon_git <- icons::fontawesome$brands$github 
+icon_rg <- icons::fontawesome$brands$researchgate
+icon_lattes <- icons::academicons$lattes
+
+```
+
+```{r dataread, include = FALSE}
+
+Dt <- readxl::read_excel("~/Academico/POS-DOC_PELDILOC/dashboards_peld-iloc/data/Equipes_datas_geral_peld.xlsx")
+Dt$Count <- 1
+head(Dt)
+
+
+
+```
+
+### **Local de Origem** - Estado de origem dos participantes das expedições do PELD ILOC. 
+
+```{r origem}
+Dt$Estado2 <- Dt$Estado
+Dt$Estado2[Dt$Estado2 %in% c("Alagoas", "Ceará", "Noronha",
+                             "Paraíba", "Rio_Grande_do_Norte")] <- "Nordeste"
+
+p1 = Dt %>%
+  #Sum records within states
+  dplyr::group_by(Local, Ano, Estado2) %>%
+  dplyr::summarise(n = sum(Count)) %>%
+  #Change labels
+  plyr::mutate(Estado2 = plyr::revalue(
+    Estado2, c('Espírito_Santo' = "Espírito Santo", 
+              'Nordeste' = "Nordeste", 
+              'Rio_de_Janeiro' = "Rio de Janeiro",
+              'Santa_Catarina' = "Santa Catarina",
+              "São_Paulo" = "São Paulo"))) %>%
+  #Change order
+  plyr::mutate(Estado2 = forcats::fct_relevel(
+    Estado2, c("Nordeste","Espírito Santo", "Rio de Janeiro", 
+               "Santa Catarina", "São Paulo"))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = n, fill = Estado2)) +
+  geom_bar(stat = "identity", position = "fill") +
+  #Change color palette
+  scale_fill_viridis_d("Origem", direction = -1) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 10)) + labs(y = "Proporção do pessoal", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) #+
+  # #Split between Islands
+  # facet_wrap(vars(Local), scales = 'free')
+  
+
+ggplotly(p1) %>% plotly::config(displayModeBar = F) 
+
+
+
+```
+
+***
+
+A maior parte dos integrantes veio de Santa Catarina, seguida do Rio de Janeiro. Não é muita surpresa, já que representam os centros (e pesquisadores) que começaram com o PELD.  
+
+### **Local de Origem** - Estado de origem dos participantes das expedições do PELD ILOC, **análise por Ilhas**
+
+```{r origem island}
+Dt$Estado2 <- Dt$Estado
+Dt$Estado2[Dt$Estado2 %in% c("Alagoas", "Ceará", "Noronha",
+                             "Paraíba", "Rio_Grande_do_Norte")] <- "Nordeste"
+
+p2 = Dt %>%
+  #Sum records within states
+  dplyr::group_by(Local, Ano, Estado2) %>%
+  dplyr::summarise(n = sum(Count)) %>%
+  #Change labels
+  plyr::mutate(Estado2 = plyr::revalue(
+    Estado2, c('Espírito_Santo' = "Espírito Santo", 
+              'Nordeste' = "Nordeste", 
+              'Rio_de_Janeiro' = "Rio de Janeiro",
+              'Santa_Catarina' = "Santa Catarina",
+              "São_Paulo" = "São Paulo"))) %>%
+  #Change order
+  plyr::mutate(Estado2 = forcats::fct_relevel(
+    Estado2, c("Nordeste","Espírito Santo", "Rio de Janeiro", 
+               "Santa Catarina", "São Paulo"))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = n, fill = Estado2)) +
+  geom_bar(stat = "identity", position = "fill") +
+  #Change color palette
+  scale_fill_viridis_d("Origem", direction = -1) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 8)) + labs(y = "Proporção do pessoal", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) +
+  facet_wrap(vars(Local), scales = 'free')
+  
+ggplotly(p2) %>% plotly::config(displayModeBar = F) 
+
+```
+
+***
+
+O estado de origem dos partipantes varia entre as ilhas, observa-se uma dominência dos estados de Santa Catarina e Rio de Janeiro.
+
+### **Educação** - Nível de educação dos participantes nas expedições. 
+
+```{r education }
+
+p3 =Dt %>%
+  #Sum records
+  dplyr::group_by(Local, Ano, Formacao) %>%
+  dplyr::summarise(n = sum(Count)) %>%
+  #Change labels
+  plyr::mutate(Formacao = plyr::revalue(
+    Formacao, c("graduada" = "Graduação",
+            "graduanda" = "Graduação",
+            'mestre' = "Mestrado", 
+            'mestrando' = "Mestrado",
+            'Mestre' = "Mestrado",
+            "doutorando" = "Doutorado",
+            'Professor' = "Professor",
+            "Pos-doc" = "Profissional",
+            "Visitante" = "Profissional"))) %>%
+  plyr::mutate(Formacao = forcats::fct_relevel(
+    Formacao, c("Graduação","Mestrado", "Doutorado", 
+               "Profissional", "Professor"))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = n, fill = Formacao)) +
+  geom_bar(stat = "identity", position = "fill") +
+  #Change color palette
+  scale_fill_viridis_d("Formação") +
+  #Adit background and axes
+  theme_bw() +theme(text = element_text(size = 10)) + labs(y = "Proporção do pessoal", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) #+
+  # # Split between Islands
+  # facet_wrap(vars(Local), scales = 'free')
+
+ggplotly(p3) %>% plotly::config(displayModeBar = F) 
+
+```
+
+***
+
+Cada ilha possui um perfil de visitantes com formação diferente quando analisadas seperadamente. Analisando-se todas as ilhas agrupadas, percebe-se uma maioria de estudantes de mestrado e doutorado. De 2017 a 2020 identifica-se um aumento na proporção de participantes classificados como profissionais, estes são compostos por pós-docs e visitantes.
+
+### **Educação** -  Nível de educação dos participantes nas expedições, **analisados por Ilhas** 
+
+```{r education island }
+
+p4 = Dt %>%
+  #Sum records
+  dplyr::group_by(Local, Ano, Formacao) %>%
+  dplyr::summarise(n = sum(Count)) %>%
+  #Change labels
+  plyr::mutate(Formacao = plyr::revalue(
+    Formacao, c("graduada" = "Graduação",
+            "graduanda" = "Graduação",
+            'mestre' = "Mestrado", 
+            'mestrando' = "Mestrado",
+            'Mestre' = "Mestrado",
+            "doutorando" = "Doutorado",
+            'Professor' = "Professor",
+            "Pos-doc" = "Profissional",
+            "Visitante" = "Profissional"))) %>%
+  plyr::mutate(Formacao = forcats::fct_relevel(
+    Formacao, c("Graduação","Mestrado", "Doutorado", 
+               "Profissional", "Professor"))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = n, fill = Formacao)) +
+  geom_bar(stat = "identity", position = "fill") +
+  #Change color palette
+  scale_fill_viridis_d("Formação") +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 8)) + labs(y = "Proporção do pessoal", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) + 
+  facet_wrap(vars(Local), scales = 'free')
+
+ggplotly(p4) %>% plotly::config(displayModeBar = F) 
+
+```
+
+### **Participação por Gênero** - Proporções de gênero dos participantes das expedições do PELD ILOC
+
+```{r gender}
+
+p5 = Dt %>%
+  #Sum records within states
+  dplyr::group_by(Local, Ano, Sexo) %>%
+  dplyr::summarise(n = sum(Count)) %>%
+  #Change labels
+  plyr::mutate(Sexo = plyr::revalue(
+    Sexo, c('F' = "Feminino", 
+            'M' = "Masculino"))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = n, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "fill") +
+  #Change color palette
+  scale_fill_viridis_d("Sexo", direction = -1) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 8)) + labs(y = "Proporção do pessoal", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) #+
+  # #Split between Islands
+  # facet_wrap(vars(Local), scales = 'free')
+
+ggplotly(p5) %>% plotly::config(displayModeBar = F) 
+
+
+```
+
+***
+
+No geral, observa-se uma tendência de uma maioria de participantes masculinos nas primeiras expedições. Esta razão sexual apresenta um tendência de inversão com o passar dos anos.  
+
+### **Participação por Gênero** - Proporções de gênero dos participantes das expedições do PELD ILOC **nas diferentes ilhas**
+
+```{r gender island}
+
+p6 = Dt %>%
+  #Sum records within states
+  dplyr::group_by(Local, Ano, Sexo) %>%
+  dplyr::summarise(n = sum(Count)) %>%
+  #Change labels
+  plyr::mutate(Sexo = plyr::revalue(
+    Sexo, c('F' = "Feminino", 
+            'M' = "Masculino"))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = n, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "fill") +
+  #Change color palette
+  scale_fill_viridis_d("Sexo", direction = -1) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 8)) + labs(y = "Proporção do pessoal", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) +
+  facet_wrap(vars(Local), scales = 'free')
+
+ggplotly(p6) %>% plotly::config(displayModeBar = F) 
+
+```
+
+***
+
+ Razão sexual está relativamente equilibrada em todas as ilhas, menos em Fernando de Noronha. Lá os enviados são predominantemente homens e essa diferença é significativa. 
+
+### **Tendências de participação por Gênero** - Probabilidade de participações por gênero das expedições do PELD ILOC
+
+```{r gender regression}
+
+Dt %>%
+  
+  # #Change labels
+  plyr::mutate(Sexo2 = as.numeric(plyr::revalue(
+    Sexo, c('F' = 1,
+            'M' = 0)))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = Sexo2)) +
+  geom_point(aes(color = Local),
+             position = position_jitter(width = .2, height = .03)) +
+  #Change color palette
+  scale_color_viridis_d("Ilha", direction = -1) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 10)) + labs(y = "Proporção de Mulheres", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) +
+  coord_cartesian(ylim = c(0,1)) +
+  #Add trend
+  geom_smooth(method = "glm", 
+              method.args = list(family = "binomial"), 
+              se = TRUE) +
+  geom_smooth(formula = y ~ splines::ns(x, 6), se = FALSE, 
+              method = "glm", method.args = list(family = "binomial"),
+                  color = "darkgrey") +
+  geom_hline(yintercept = .5) #+
+  # by island
+  #facet_wrap(vars(Local), scales = 'free')
+
+
+
+
+
+```
+
+***
+
+Olhando para a probabilidade de mulheres (0) ou homens (1) serem enviados para as expedições, as expedições atingiram um certo equilíbrio recentemente. 
+
+### **Tendências de participação por Gênero, análise por Ilhas** - Probabilidade de participações por gênero das expedições do PELD ILOC, **analisados por ilhas** 
+
+```{r gender regression island}
+
+  Dt %>%
+  
+  # #Change labels
+  plyr::mutate(Sexo2 = as.numeric(plyr::revalue(
+    Sexo, c('F' = 1,
+            'M' = 0)))) %>%
+  #Call a new barplot
+  ggplot(aes(x = Ano, y = Sexo2)) +
+  geom_point(aes(color = Local),
+             position = position_jitter(width = .2, height = .03)) +
+  #Change color palette
+  scale_color_viridis_d("Ilha", direction = -1) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 8)) + labs(y = "Proporção de Mulheres", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) +
+  coord_cartesian(ylim = c(0,1)) +
+  #Add trend
+  geom_smooth(method = "glm", 
+              method.args = list(family = "binomial"), 
+              se = TRUE) +
+  geom_smooth(formula = y ~ splines::ns(x, 6), se = FALSE, 
+              method = "glm", method.args = list(family = "binomial"),
+                  color = "darkgrey") +
+  geom_hline(yintercept = .5) +
+  facet_wrap(vars(Local), scales = 'free')
+
+```
+
+### **Tom de Pele** - Análise da representatividade étnica dos participantes nas expedições do PELD ILOC 
+
+```{r skin}
+
+skin <- c("#3b2219ff", "#a16e4bff", "#d4aa78ff", "#e6bc98ff", "#ffe7d1ff")
+
+#ceate a raster Grob
+g <- grid::rasterGrob(scales::alpha(skin, .5), 
+                      width=unit(1,"npc"), height = unit(1,"npc"), 
+                interpolate = TRUE) 
+
+Dt %>%
+  #Sum records
+  dplyr::group_by(Local, Ano, Skin_Tone) %>%
+  dplyr::summarise(n = sum(Count))  %>%
+ 
+   #Call a new plot
+  ggplot(aes(x = Ano, y = Skin_Tone)) +
+  # Add background
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) + 
+  #Add points
+  geom_point(position = position_jitter(width = .2, height = .03),
+             color = "black") +
+  # #Change points color
+  # scale_color_gradientn("Cor-de-Pele", colors = skin, limits = c(6, 1)) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 10)) + labs(y = "Tom de pele", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) + scale_y_continuous(n.breaks = 6) +
+  geom_hline(yintercept = 3.5, linetype = 2) +
+  coord_cartesian(ylim = c(1,6)) +
+  #Add trend
+  geom_smooth(method = "glm", 
+              method.args = list(family = "poisson"), 
+              se = FALSE, formula = y ~ splines::ns(x, 4)) #+
+  # #Split between Islands
+  # facet_wrap(vars(Local), scales = 'free')
+
+
+```
+
+***
+
+Por fim, pra discutir representatividade étnica foi utilizada a [escala de FitzPatrick](https://en.wikipedia.org/wiki/Fitzpatrick_scale) para classificar as pessoas em 6 tons de pele, refletindo a probabilidade de adquirir queimaduras ou se bronzear quando exposto ao Sol. Essa classificação não inclui a autoidentificação das pessoas e ignora o histórico social, mas é fácil de entender e aplicar.
+
+O tom de pele das pessoas nas expedições está estável e parece ser fortemente enviesado para o lado mais claro do espectro. Apenas duas pessoas possuem tons de pele mais escuros, mas ninguém perto do extremo de melanina.
+
+
+### **Tom de pele por Ilhas** - Análise da representatividade étnica dos participantes nas expedições do PELD ILOC **analisados por ilhas**  
+
+```{r skin island}
+
+skin <- c("#3b2219ff", "#a16e4bff", "#d4aa78ff", "#e6bc98ff", "#ffe7d1ff")
+
+#ceate a raster Grob
+g <- grid::rasterGrob(scales::alpha(skin, .5), 
+                      width=unit(1,"npc"), height = unit(1,"npc"), 
+                interpolate = TRUE) 
+
+Dt %>%
+  #Sum records
+  dplyr::group_by(Local, Ano, Skin_Tone) %>%
+  dplyr::summarise(n = sum(Count))  %>%
+ 
+   #Call a new plot
+  ggplot(aes(x = Ano, y = Skin_Tone)) +
+  # Add background
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) + 
+  #Add points
+  geom_point(position = position_jitter(width = .2, height = .03),
+             color = "black") +
+  # #Change points color
+  # scale_color_gradientn("Cor-de-Pele", colors = skin, limits = c(6, 1)) +
+  #Adit background and axes
+  theme_bw() + theme(text = element_text(size = 8)) + labs(y = "Tom de pele", x = 'Anos') +
+  scale_x_continuous(n.breaks = 8) + scale_y_continuous(n.breaks = 6) +
+  geom_hline(yintercept = 3.5, linetype = 2) +
+  coord_cartesian(ylim = c(1,6)) +
+  #Add trend
+  geom_smooth(method = "glm", 
+              method.args = list(family = "poisson"), 
+              se = FALSE, formula = y ~ splines::ns(x, 4)) +
+  facet_wrap(vars(Local), scales = 'free')
+
+
+```
+
+***
+
+**Conclusões**
+  <br>
+
+As pessoas que participam do Peld são majoritariamente alunos de pós-graduação dos laboratórios onde o programa começou. Esse viés é refletido nos objetos de estudo, que em sua maioria (~80%) abordam peixes recifais. O programa está próximo de atingir a igualdade de gênero nas expedições, mas atende principalmente pessoas de tons de pele mais claros. Acredito que aqui temos um viés geográfico (população negra em Santa Catarina é muito pequena) e social (desigualdade social do Rio dificulta que negros entrem no ensino superior), mas que podem ser trabalhados. Do ponto de vista social, o PELD ILOC está bom, mas pode ficar ainda melhor.
+
+
+
+**Metodologia**
+
+Informações retiradas dos dados disponíveis na plataforma Lattes de cada participante.
+
+
+
+**Autores**
+
+Grabriel Garcia [`r icon_mail`](mailto:gasagarcia@gmail.com) [`r icon_rg`]() [`r icon_lattes`]()
+ <br>
+Aquisição e análise dos dados
+
+Thiago Cesar Lima Silveira [`r icon_mail`](mailto:silveira.tcl@gamil.com) [`r icon_git`](https://github.com/silveiratcl) [`r icon_rg`](https://www.researchgate.net/profile/Thiago-Cesar-Silveira) [`r icon_lattes`](http://lattes.cnpq.br/5960267776845701)
+ <br>
+Desenvolvimento do dashboard
+
+
+
+
