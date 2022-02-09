@@ -441,7 +441,7 @@ ggplotly(pp) %>% plotly::config(displayModeBar = F)
 Taxa abundance {.storyboard}
 =======================================================
 
-### **Fernando de Noronha** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa.
+### **Fernando de Noronha** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa by site.
 
 ```{r abun noronha}
 
@@ -468,7 +468,7 @@ pp = pp + geom_bar(stat="identity") + coord_flip() + facet_grid(~site_code) +
 ggplotly(pp) %>% plotly::config(displayModeBar = F) 
 ```
 
-### **Atol das rocas** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa.
+### **Atol das rocas** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa by site.
 
 ```{r abun rocas}
 
@@ -495,7 +495,7 @@ pp = pp + geom_bar(stat="identity") + coord_flip() + facet_grid(~site_code) +
 ggplotly(pp) %>% plotly::config(displayModeBar = F) 
 ```
 
-### **ASPSP** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa.
+### **ASPSP** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa by site.
 
 ```{r abun ASPSP}
 
@@ -522,7 +522,7 @@ pp = pp + geom_bar(stat="identity") + coord_flip() + facet_grid(~site_code) +
 ggplotly(pp) %>% plotly::config(displayModeBar = F) 
 
 ```
-### **Trindade** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant taxa.
+### **Trindade** - Number of individuals recorded by site (individuals/ n. census). The plots shows the Top 10 most abundant by site.
 
 ```{r abun trindade}
 
